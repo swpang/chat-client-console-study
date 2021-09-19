@@ -144,7 +144,7 @@ namespace chatTest3_Client
                     sender = splittedMsg[0];
                     message = splittedMsg[1];
 
-                    if (sender == "Admin")
+                    if (sender == "Admin" || message != "TEST")
                     {
                         string userList = "";
                         string[] splittedUser = message.Split('$');
