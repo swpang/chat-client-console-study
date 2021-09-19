@@ -56,10 +56,10 @@ namespace chatTest3_Client
                                 Console.ReadKey();
                             }
                             else
-                                sendMessage;
+                                SendMessage();
                             break;
                         case StaticDefine.SEND_MSG_VIEW:
-                            sendMessageView();
+                            SendMessageView();
                             break;
                         case StaticDefine.RECEIVE_MSG_VIEW:
                             ReceiveMessageView();
