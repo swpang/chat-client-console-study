@@ -83,7 +83,7 @@ namespace chatTest3_Client
         }
         private void ReceiveMessageView()
         {
-            if (sendMessageListToView.Count == 0)
+            if (receiveMessageListToView.Count == 0)
             {
                 Console.WriteLine("No Messages Received");
                 Console.ReadKey();
@@ -121,7 +121,7 @@ namespace chatTest3_Client
                 {
                     if (!item.Contains('<'))
                         continue;
-                    if (item.Contains("Adimn<TEST>"))
+                    if (item.Contains("Admin<TEST"))
                         continue;
                     receiveMessageList.Add(item);
                 }
@@ -144,7 +144,7 @@ namespace chatTest3_Client
                     sender = splittedMsg[0];
                     message = splittedMsg[1];
 
-                    if (sender == "Admin" || message != "TEST")
+                    if (sender == "Admin")
                     {
                         string userList = "";
                         string[] splittedUser = message.Split('$');
@@ -154,7 +154,7 @@ namespace chatTest3_Client
                                 continue;
                             userList += el + " ";
                         }
-                        Console.WriteLine(string.Format("[현재 접속인원] {0}", userList));
+                        Console.WriteLine(string.Format("[Connected Clients] {0}", userList));
                         messageList.Clear();
                         return;
                     }
@@ -169,8 +169,8 @@ namespace chatTest3_Client
         private void SendMessage()
         {
             string getUserList = string.Format("{0}<GiveMeUserList>", name);
-            byte[] getuserByte = Encoding.Default.GetBytes(getUserList);
-            client.GetStream().Write(getuserByte, 0, getuserByte.Length);
+            byte[] getUserByte = Encoding.Default.GetBytes(getUserList);
+            client.GetStream().Write(getUserByte, 0, getUserByte.Length);
 
             Console.WriteLine("Who do you want to send a message to?");
             string receiver = Console.ReadLine();
@@ -180,7 +180,7 @@ namespace chatTest3_Client
 
             if (string.IsNullOrEmpty(receiver) || string.IsNullOrEmpty(message))
             {
-                Console.WriteLine("Confirm Message");
+                Console.WriteLine("Check the receiptant and message");
                 Console.ReadKey();
                 return;
             }
@@ -199,11 +199,11 @@ namespace chatTest3_Client
 
         private void Connect()
         {
-            Console.WriteLine("Your name :");
+            Console.WriteLine("Your name : ");
             name = Console.ReadLine();
 
-            string parsedName = "%^%" + name;
-            if (parsedName == "%^%")
+            string parsedName = "%^&" + name;
+            if (parsedName == "%^&")
             {
                 Console.WriteLine("Invalid Name");
                 Console.ReadKey();
