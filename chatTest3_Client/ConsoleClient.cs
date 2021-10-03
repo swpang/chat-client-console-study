@@ -15,7 +15,17 @@ namespace chatTest3_Client
         Thread receiveMessageThread = null;
         ConcurrentBag<string> sendMessageListToView = null;
         ConcurrentBag<string> receiveMessageListToView = null;
+
         private string name = null;
+        private string id = null;
+        private string parsedName = null;
+        private string chatroom = null;
+        private char usertype = '\0';
+        public string parser = "$$#$$";
+        public string connect_header = "UserInfo";
+        public string getclientlist_header = "GetClientList";
+        public string disconnect_header = "Disconnect";
+        public string message_header = "Message";
 
         public void Run()
         {
@@ -65,9 +75,9 @@ namespace chatTest3_Client
                             ReceiveMessageView();
                             break;
                         case StaticDefine.EXIT:
+                            receiveMessageThread.Abort();
                             if (client != null)
                                 client.Close();
-                            receiveMessageThread.Abort();
                             return;
                     }
                 }
@@ -108,113 +118,171 @@ namespace chatTest3_Client
         private void receiveMessage()
         {
             string receiveMessage = "";
-            List<string> receiveMessageList = new List<string>();
             while (true)
             {
                 byte[] receiveByte = new byte[1024];
                 client.GetStream().Read(receiveByte, 0, receiveByte.Length);
 
                 receiveMessage = Encoding.Default.GetString(receiveByte);
+                ParsingReceiveMessage(receiveMessage);
 
-                string[] receiveMessageArray = receiveMessage.Split('>');
-                foreach (var item in receiveMessageArray)
-                {
-                    if (!item.Contains('<'))
-                        continue;
-                    if (item.Contains("Admin<TEST"))
-                        continue;
-                    receiveMessageList.Add(item);
-                }
-                ParsingReceiveMessage(receiveMessageList);
-
-                Thread.Sleep(500);
+                Thread.Sleep(1000);
             }
         }
-        private void ParsingReceiveMessage(List<string> messageList)
+        private void ParsingReceiveMessage(string receiveMessage)
         {
-            foreach (var item in messageList)
+            List<string> receiveMessageList = new List<string>();
+            string[] receiveMessageArray = receiveMessage.Split(parser);
+            for (int i = 0; i < receiveMessageArray.Length; i++)
             {
-                string sender = "";
-                string message = "";
-
-                if (item.Contains('<'))
-                {
-                    string[] splittedMsg = item.Split('<');
-
-                    sender = splittedMsg[0];
-                    message = splittedMsg[1];
-
-                    if (sender == "Admin")
-                    {
-                        string userList = "";
-                        string[] splittedUser = message.Split('$');
-                        foreach (var el in splittedUser)
-                        {
-                            if (string.IsNullOrEmpty(el))
-                                continue;
-                            userList += el + " ";
-                        }
-                        Console.WriteLine(string.Format("[Connected Clients] {0}", userList));
-                        messageList.Clear();
-                        return;
-                    }
-                    Console.WriteLine(string.Format("[Message has arrived] {0} : {1}", sender, message));
-                    receiveMessageListToView.Add(string.Format("[{0}] Sender : {1}, Message : {2}",
-                        DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), sender, message));
-                }
+                if (String.IsNullOrEmpty(receiveMessageArray[i]))
+                    continue;
+                if (receiveMessageArray[i] == "Dummy")
+                    if (receiveMessageArray[i + 2] == "Dummy")
+                        break;
+                receiveMessageList.Add(receiveMessageArray[i]);
             }
+
+            string type = receiveMessageList[0];
+
+            switch (type)
+            {
+                case "Message":
+                    type_Message(receiveMessageList);
+                    break;
+                case "ClientList":
+                    type_ClientList(receiveMessageList);
+                    break;
+            }
+        }
+        private void type_Message(List<string> messageList)
+        {
+            string sender = messageList[1];
+            string message = messageList[2];
+
+            Console.WriteLine(string.Format("[Message has arrived] {0} : {1}", sender, message));
+            receiveMessageListToView.Add(string.Format("[{0}] Sender : {1}, Message : {2}",
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), sender, message));
+        }
+
+        private void type_ClientList(List<string> messageList)
+        {
+            string userList = "";
+            string[] splittedUser = messageList[1].Split("%%");
+            foreach (var el in splittedUser)
+            {
+                if (string.IsNullOrEmpty(el))
+                    continue;
+                userList += el + " ";
+            }
+            Console.WriteLine(string.Format("[Connected Clients] {0}", userList));
             messageList.Clear();
+            return;
         }
 
         private void SendMessage()
         {
-            string getUserList = string.Format("{0}<GiveMeUserList>", name);
+
+            string getUserList = string.Format(parser 
+                + getclientlist_header
+                + parser
+                + chatroom
+                + parser
+                + parsedName);
             byte[] getUserByte = Encoding.Default.GetBytes(getUserList);
             client.GetStream().Write(getUserByte, 0, getUserByte.Length);
 
-            Console.WriteLine("Who do you want to send a message to?");
-            string receiver = Console.ReadLine();
-
-            Console.WriteLine("Write the message : ");
-            string message = Console.ReadLine();
-
-            if (string.IsNullOrEmpty(receiver) || string.IsNullOrEmpty(message))
+            try
             {
-                Console.WriteLine("Check the receiptant and message");
+                Console.Write("Who do you want to send a message to?");
+                string receiver = Console.ReadLine();
+
+                Console.Write("\nWrite the message : ");
+                string message = Console.ReadLine();
+
+                if (string.IsNullOrEmpty(receiver) || string.IsNullOrEmpty(message))
+                {
+                    Console.WriteLine("Check the receiptant and message");
+                    Console.ReadKey();
+                    return;
+                }
+
+                string parsedMessage = string.Format(
+                    parser
+                    + message_header
+                    + parser
+                    + chatroom
+                    + parser
+                    + receiver
+                    + parser
+                    + parsedName
+                    + parser
+                    + message);
+
+                byte[] byteData = new byte[parsedMessage.Length];
+                byteData = Encoding.Default.GetBytes(parsedMessage);
+
+                client.GetStream().Write(byteData, 0, byteData.Length);
+                sendMessageListToView.Add(string.Format("[{0}] Receiver : {1}, Message : {2}",
+                    DateTime.Now.ToString("yyy-MM-dd HH:mm:ss"), receiver, message));
+                Console.WriteLine("Successfully Sent");
                 Console.ReadKey();
-                return;
             }
-
-            string parsedMessage = string.Format("{0}<{1}>", receiver, message);
-
-            byte[] byteData = new byte[1024];
-            byteData = Encoding.Default.GetBytes(parsedMessage);
-
-            client.GetStream().Write(byteData, 0, byteData.Length);
-            sendMessageListToView.Add(string.Format("[{0}] Receiver : {1}, Message : {2}",
-                DateTime.Now.ToString("yyy-MM-dd HH:mm:ss"), receiver, message));
-            Console.WriteLine("Successfully Sent");
-            Console.ReadKey();
+            
+            catch (Exception e) { }
         }
 
         private void Connect()
         {
-            Console.WriteLine("Your name : ");
+            Console.Write("Your username : ");
             name = Console.ReadLine();
 
-            string parsedName = "%^&" + name;
-            if (parsedName == "%^&")
+            Console.Write("\nYour student ID : ");
+            id = Console.ReadLine();
+
+            parsedName = name + '_' + id;
+            if (String.IsNullOrEmpty(parsedName))
             {
                 Console.WriteLine("Invalid Name");
                 Console.ReadKey();
                 return;
             }
 
-            client = new TcpClient();
-            client.Connect("127.0.0.1", 9999);
+            Console.Write("\nStudent [1], Supervisor [2] : ");
+            usertype = Console.ReadKey().KeyChar;
 
-            byte[] byteData = new byte[1024];
-            byteData = Encoding.Default.GetBytes(parsedName);
+            if (!((usertype == '1') || (usertype == '2')))
+            {
+                Console.WriteLine("Wrong Choice");
+                Console.ReadKey();
+                return;
+            }
+
+            Console.Write("\nEnter Chatroom Key : ");
+            chatroom = Console.ReadLine();
+
+            if (String.IsNullOrEmpty(chatroom))
+            {
+                Console.WriteLine("Invalid Chatroom Key");
+                Console.ReadKey();
+                return;
+            }
+
+            client = new TcpClient();
+            client.Connect(StaticDefine.HOST_ADDRESS, 9999);
+
+            string parsedMessage = string.Format(
+                parser
+                + connect_header
+                + parsedName
+                + parser
+                + usertype
+                + parser
+                + chatroom);
+
+            byte[] byteData = new byte[parsedMessage.Length];
+            byteData = Encoding.UTF8.GetBytes(parsedMessage);
+            client.GetStream().Write(byteData, 0, byteData.Length);
             client.GetStream().Write(byteData, 0, byteData.Length);
 
             receiveMessageThread.Start();
