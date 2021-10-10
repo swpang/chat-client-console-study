@@ -121,7 +121,7 @@ namespace chatTest3_Client
                 {
                     if (!item.Contains('<'))
                         continue;
-                    if (item.Contains("Adimn<TEST>"))
+                    if (item.Contains("Admin<TEST"))
                         continue;
                     receiveMessageList.Add(item);
                 }
