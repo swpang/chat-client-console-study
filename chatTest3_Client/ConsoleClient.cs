@@ -125,9 +125,8 @@ namespace chatTest3_Client
 
                 receiveMessage = Encoding.Default.GetString(receiveByte);
                 ParsingReceiveMessage(receiveMessage);
-
-                Thread.Sleep(1000);
             }
+            Thread.Sleep(500);
         }
         private void ParsingReceiveMessage(string receiveMessage)
         {
@@ -194,10 +193,10 @@ namespace chatTest3_Client
 
             try
             {
-                Console.Write("Who do you want to send a message to?");
+                Console.WriteLine("Who do you want to send a message to? (Choose from client list)");
                 string receiver = Console.ReadLine();
 
-                Console.Write("\nWrite the message : ");
+                Console.WriteLine("\nWrite the message : ");
                 string message = Console.ReadLine();
 
                 if (string.IsNullOrEmpty(receiver) || string.IsNullOrEmpty(message))
@@ -224,7 +223,7 @@ namespace chatTest3_Client
 
                 client.GetStream().Write(byteData, 0, byteData.Length);
                 sendMessageListToView.Add(string.Format("[{0}] Receiver : {1}, Message : {2}",
-                    DateTime.Now.ToString("yyy-MM-dd HH:mm:ss"), receiver, message));
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), receiver, message));
                 Console.WriteLine("Successfully Sent");
                 Console.ReadKey();
             }
@@ -257,8 +256,9 @@ namespace chatTest3_Client
                 Console.ReadKey();
                 return;
             }
+            Console.ReadKey();
 
-            Console.Write("\nEnter Chatroom Key : ");
+            Console.Write("\n\nEnter Chatroom Key : ");
             chatroom = Console.ReadLine();
 
             if (String.IsNullOrEmpty(chatroom))
@@ -274,15 +274,17 @@ namespace chatTest3_Client
             string parsedMessage = string.Format(
                 parser
                 + connect_header
+                + parser
                 + parsedName
                 + parser
                 + usertype
                 + parser
                 + chatroom);
 
+            Console.WriteLine(parsedMessage);
+
             byte[] byteData = new byte[parsedMessage.Length];
             byteData = Encoding.UTF8.GetBytes(parsedMessage);
-            client.GetStream().Write(byteData, 0, byteData.Length);
             client.GetStream().Write(byteData, 0, byteData.Length);
 
             receiveMessageThread.Start();
